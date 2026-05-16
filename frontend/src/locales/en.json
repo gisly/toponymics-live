@@ -1,0 +1,29 @@
+{
+  "site_title": "Toponymics of Indigenous Peoples of Russia",
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "platform": "Platform",
+    "map": "Map",
+    "events": "Events",
+    "team": "Team"
+  },
+  "map": {
+    "loading": "Loading map…",
+    "no_toponyms": "No toponyms found",
+    "filter_by_region": "Region",
+    "filter_by_type": "Feature type",
+    "filter_by_map": "Historical map"
+  },
+  "toponym": {
+    "evn_cyrillic": "Evenki (Cyrillic)",
+    "evn_latin": "Evenki (Latin)",
+    "evn_ipa": "Evenki (IPA)",
+    "russian": "Russian",
+    "english": "English",
+    "feature_type": "Feature type",
+    "etymology": "Etymology",
+    "narrative": "Story",
+    "found_on_maps": "Appears on maps"
+  }
+}

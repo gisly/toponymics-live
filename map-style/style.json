@@ -1,0 +1,22 @@
+{
+  "version": 8,
+  "name": "Toponymics Live — stub",
+  "metadata": {
+    "comment": "Стартовый минимальный стиль. После загрузки siberia.pmtiles импортируй полный стиль из Protomaps (Light) и кастомизируй в Maputnik."
+  },
+  "sources": {
+    "protomaps": {
+      "type": "vector",
+      "url": "pmtiles:///pmtiles/siberia.pmtiles",
+      "attribution": "<a href=\"https://protomaps.com\">Protomaps</a> &middot; <a href=\"https://openstreetmap.org\">OpenStreetMap</a>"
+    }
+  },
+  "glyphs": "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": { "background-color": "#f5f5f4" }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  /* Класс для эвенкийских форм и IPA */
+  .lang-evn,
+  .ipa {
+    font-family: "Charis SIL", "Gentium Plus", "Noto Sans", serif;
+    font-feature-settings: "kern", "liga";
+  }
+}
