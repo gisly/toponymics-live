@@ -102,15 +102,28 @@ DATABASES = {
     }
 }
 
-# ─── Cache (Redis) ─────────────────────────────────────────────────────────
+# ─── Cache (Redis, fallback на in-memory) ──────────────────────────────────
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+_REDIS_URL = os.environ.get("REDIS_URL", "")
+if _REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "IGNORE_EXCEPTIONS": True,  # не падать при недоступности redis
+            },
+        }
     }
-}
+    DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+else:
+    # Локальная разработка без Docker — кеш в памяти
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
 # ─── Auth password validators (стандартные) ────────────────────────────────
 

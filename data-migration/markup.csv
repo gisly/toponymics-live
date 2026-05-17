@@ -1,0 +1,28 @@
+id,language,url,title,word_count,WAGTAIL_TYPE,WAGTAIL_PARENT,ACTION,NOTES
+160,RU,https://toponymics-live.net/,Топонимическая платформа: что это?,806,HomePage,,update_home,Контент идёт в существующую HomePage Wagtail
+681,EN,https://toponymics-live.net/en/what-exactly-is-a-toponymic-platform/,What exactly is a toponymic platform,997,,,english_of:160,Перевод главной
+15,RU,https://toponymics-live.net/sistema-dannykh/,Платформа,0,ProjectPage,root,import,Пустой раздел — будет наполнен ссылками на SPA-карту и БД
+674,EN,https://toponymics-live.net/en/platform/,Platform,0,,,english_of:15,
+245,RU,https://toponymics-live.net/kartografiya-i-toponimika/,Картография и топонимика,0,ProjectPage,root,import,Раздел-родитель для статьи 'Что такое индигенная картография'
+669,EN,https://toponymics-live.net/en/cartography-and-toponymy/,Cartography and Toponymy,0,,,english_of:245,
+249,RU,https://toponymics-live.net/chto-takoe-indigennaya-kartografiya/,Что такое индигенная картография,3331,ArticlePage,245,import,Длинная статья — важный нарратив проекта
+580,EN,https://toponymics-live.net/en/what-is/,What is Indigenous Cartography,4683,,,english_of:249,
+43,RU,https://toponymics-live.net/o-proekte/,О проекте,0,ProjectPage,root,import,Главный раздел проекта
+662,EN,https://toponymics-live.net/en/about-the-project/,About The Project,0,,,english_of:43,
+191,RU,https://toponymics-live.net/o-proekte/kak-sobirat-nazvaniya-mest/,Как собирать названия мест,505,ArticlePage,43,import,Руководство для информантов
+588,EN,https://toponymics-live.net/en/about-the-project/how-to-collect/,How to collect place-names,630,,,english_of:191,
+49,RU,https://toponymics-live.net/o-proekte/kontakty/,Контакты,35,ArticlePage,43,import,
+651,EN,https://toponymics-live.net/en/about-the-project/contacts/,Contacts,49,,,english_of:49,
+47,RU,https://toponymics-live.net/o-proekte/faq/,FAQ,0,ArticlePage,43,import,Пустая страница — заполнить вручную позже
+45,RU,https://toponymics-live.net/o-proekte/materialy-proekta/,Материалы проекта,758,ArticlePage,43,import,
+596,EN,https://toponymics-live.net/en/about-the-project/project-material/,Project materials,969,,,english_of:45,
+206,RU,https://toponymics-live.net/kak-polzovatsya-platformoy/,Как пользоваться Платформой,340,ArticlePage,15,import,Гайд по работе с платформой — дочка раздела Платформа
+615,EN,https://toponymics-live.net/en/how-to-use-the-platform/,How to use the Platform,476,,,english_of:206,
+19,RU,https://toponymics-live.net/resursy/,Ресурсы,2251,ProjectPage,root,import,Длинный список литературы — может стать ArticlePage если не будет подстраниц
+623,EN,https://toponymics-live.net/en/resources/,Resources,2252,,,english_of:19,
+21,RU,https://toponymics-live.net/sobytiya/,События,0,ProjectPage,root,import,Контейнер для EventPage в будущем
+459,RU,https://toponymics-live.net/fotogalereya-albomy/,Фотогалерея,3,ArticlePage,root,import,20 картинок — будет галерея
+677,EN,https://toponymics-live.net/en/photo-gallery/,Photo Gallery,3,,,english_of:459,
+33,RU,https://toponymics-live.net/politika-v-otnoshenii-obrabotki-perso/,Политика обработки персональных данных,1336,ArticlePage,root,import,Footer-ссылка
+35,RU,https://toponymics-live.net/pravila-ispolzovaniya-sayta/,Правила использования сайта,0,,,skip,Пустая
+2,RU,https://toponymics-live.net/sample-page/,Пример страницы,109,,,skip,Дефолтная WP-страница
