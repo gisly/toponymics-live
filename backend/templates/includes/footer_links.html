@@ -1,0 +1,4 @@
+{% load wagtailcore_tags %}
+{% for item in items %}
+    <a href="{% pageurl item %}" class="hover:text-stone-900">{{ item.title }}</a>
+{% endfor %}

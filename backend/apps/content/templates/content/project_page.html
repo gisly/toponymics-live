@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags streamfield_tags %}
+
+{% block content %}
+<article class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+    <header class="mb-8">
+        <h1 class="text-3xl font-semibold text-stone-900 leading-tight mb-3">{{ page.title }}</h1>
+        {% if page.intro %}
+        <div class="text-lg text-stone-700 leading-relaxed">
+            {{ page.intro|richtext }}
+        </div>
+        {% endif %}
+    </header>
+
+    {% if page.body %}
+    <div class="prose-content mb-10">
+        {% render_streamfield page.body %}
+    </div>
+    {% endif %}
+
+    {# Список подстраниц этого раздела #}
+    {% with children=page.get_children.live.specific %}
+    {% if children %}
+    <section class="mt-12 pt-8 border-t border-stone-200">
+        <h2 class="text-xl font-semibold text-stone-900 mb-4">В этом разделе</h2>
+        <ul class="space-y-3">
+            {% for child in children %}
+            <li>
+                <a href="{% pageurl child %}" class="block group">
+                    <div class="text-stone-900 group-hover:text-stone-600 font-medium">{{ child.title }}</div>
+                    {% if child.specific.intro %}
+                    <div class="text-stone-600 text-sm mt-1">{{ child.specific.intro|striptags|truncatewords:25 }}</div>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+    {% endwith %}
+</article>
+{% endblock %}

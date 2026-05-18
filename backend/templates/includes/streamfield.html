@@ -1,0 +1,48 @@
+{% load wagtailcore_tags wagtailimages_tags %}
+{% for block in stream %}
+    {% if block.block_type == "paragraph" %}
+        <div class="prose-paragraph mb-4 text-stone-800 leading-relaxed">
+            {{ block.value|richtext }}
+        </div>
+
+    {% elif block.block_type == "heading" %}
+        <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">{{ block.value }}</h2>
+
+    {% elif block.block_type == "image" %}
+        <figure class="my-8">
+            {% image block.value fill-1200x800 class="w-full rounded-md" %}
+        </figure>
+
+    {% elif block.block_type == "quote" %}
+        <blockquote class="my-8 border-l-4 border-stone-300 pl-6 py-1 italic text-stone-700">
+            <p class="text-lg">{{ block.value.text }}</p>
+            {% if block.value.attribution %}
+            <footer class="not-italic text-sm text-stone-500 mt-2">— {{ block.value.attribution }}</footer>
+            {% endif %}
+        </blockquote>
+
+    {% elif block.block_type == "map_embed" %}
+        <div class="my-8 rounded-md overflow-hidden border border-stone-200">
+            <div class="map-embed-widget"
+                 data-region="{{ block.value.region_slug }}"
+                 data-historical-map="{{ block.value.historical_map_slug }}"
+                 data-height="{{ block.value.height_px|default:400 }}"
+                 style="height: {{ block.value.height_px|default:400 }}px; background: #f5f5f4;">
+                <noscript class="block p-4 text-stone-500 text-sm">
+                    Карта доступна с включённым JavaScript.
+                </noscript>
+            </div>
+            {% if block.value.title %}
+            <figcaption class="px-4 py-2 text-sm text-stone-500 bg-stone-50 border-t border-stone-200">
+                {{ block.value.title }}
+            </figcaption>
+            {% endif %}
+        </div>
+
+    {% else %}
+        {# Fallback для неизвестных блоков — рендерим как есть через Wagtail #}
+        <div class="my-4">
+            {% include_block block %}
+        </div>
+    {% endif %}
+{% endfor %}

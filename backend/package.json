@@ -1,0 +1,13 @@
+{
+  "name": "toponymics-backend-styles",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/main.input.css -o ./static/css/main.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/main.input.css -o ./static/css/main.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.10",
+    "@tailwindcss/typography": "^0.5.13"
+  }
+}

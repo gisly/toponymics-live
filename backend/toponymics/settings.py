@@ -81,6 +81,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
+                "apps.content.context_processors.site_meta",
             ],
         },
     },
@@ -155,6 +157,9 @@ WAGTAIL_CONTENT_LANGUAGES = LANGUAGES
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static_collected"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # папка проектного уровня для favicon, CSS, и т.д.
+]
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",

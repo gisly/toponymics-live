@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags streamfield_tags %}
+
+{% block content %}
+<article class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+    <header class="mb-10">
+        <h1 class="text-4xl font-semibold text-stone-900 leading-tight mb-4">{{ page.title }}</h1>
+        {% if page.intro %}
+        <div class="prose text-lg text-stone-700 leading-relaxed">
+            {{ page.intro|richtext }}
+        </div>
+        {% endif %}
+    </header>
+
+    {% if page.body %}
+    <div class="prose-content">
+        {% render_streamfield page.body %}
+    </div>
+    {% endif %}
+</article>
+{% endblock %}

@@ -1,47 +1,54 @@
 # toponymics-live
 
-Цифровая платформа индигенной топонимики. Wagtail (контент) + Django REST (топонимы) + React/MapLibre (фронт) + PMTiles (карта).
+Цифровая платформа индигенной топонимики коренных народов Сибири.
 
-## Quickstart (локально)
+**Стек:**
+- Wagtail 6 (CMS, многоязычный контент через wagtail-localize)
+- Django 5 + DRF (API для топонимов и рукописных карт)
+- PostgreSQL 16, Redis 7
+- Tailwind CSS (стили для шаблонов)
+- React + Vite + MapLibre GL JS (карта на странице Платформа)
 
-Требуется: Docker, Docker Compose, Git.
+## Быстрый старт
 
+**Полная пошаговая инструкция:** [`docs/setup.md`](docs/setup.md)
+
+Если коротко:
 ```bash
-git clone <url> toponymics-live
-cd toponymics-live
 cp .env.example .env
-# Отредактируй .env при необходимости (для локалки можно оставить как есть)
-docker compose up --build
-```
-
-После того как все сервисы поднимутся:
-
-- Wagtail-админка: http://localhost:8000/cms/ (логин/пароль создаются при первом запуске, см. ниже)
-- Django REST API: http://localhost:8000/api/
-- React SPA (dev): http://localhost:5173/
-
-### Первый запуск — суперюзер
-
-После `docker compose up` в новом терминале:
-
-```bash
+docker compose up -d --build
 docker compose exec django python manage.py createsuperuser
 ```
 
-## Структура
+После этого:
+- `http://localhost:8000/ru/` — сайт по-русски
+- `http://localhost:8000/en/` — English
+- `http://localhost:8000/cms/` — Wagtail-админка
+- `http://localhost:8000/api/` — REST API
+
+## Структура проекта
 
 ```
-backend/         — Django + Wagtail (Python 3.12)
-frontend/        — React + Vite + TypeScript (Node 20)
-map-style/       — MapLibre style.json и связанные ресурсы
-infrastructure/  — nginx config, deployment scripts
-data-migration/  — одноразовые скрипты миграции из WP/старой БД
-docs/            — документация проекта
+backend/           Django + Wagtail (Python 3.12)
+  apps/
+    content/       Wagtail Page-модели, шаблоны, WP-импортёр
+    toponyms/      модели топонимов и рукописных карт
+    api/           DRF для топонимов
+  templates/       общие Jinja-шаблоны (base, 404, includes/)
+  static/          CSS, favicon
+
+frontend/          React + Vite (карта)
+map-style/         MapLibre стиль
+data-migration/    скрипты экспорта/анализа/импорта WordPress контента
+infrastructure/    скрипты деплоя на VPS
+docs/              документация (setup, deployment)
 ```
 
-## Production
+## Документация
 
-См. `docs/deployment.md` (будет позже).
+- [`docs/setup.md`](docs/setup.md) — установка и запуск с нуля
+- [`docs/deployment.md`](docs/deployment.md) — деплой на VPS (TBD)
+- [`infrastructure/scripts/vps-init.sh`](infrastructure/scripts/vps-init.sh) — скрипт первой настройки сервера
 
 ## Лицензия
 

@@ -1,0 +1,7 @@
+{% for lang in languages %}
+    {% if lang.is_current %}
+        <span class="font-semibold text-stone-900" title="{{ lang.name }}">{{ lang.label }}</span>
+    {% else %}
+        <a href="{{ lang.url }}" class="text-stone-500 hover:text-stone-900" title="{{ lang.name }}" hreflang="{{ lang.code }}">{{ lang.label }}</a>
+    {% endif %}
+{% endfor %}

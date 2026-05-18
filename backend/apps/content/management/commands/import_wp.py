@@ -148,15 +148,31 @@ class Command(BaseCommand):
 
         # Загрузка
         self.markup_rows = self._load_markup()
-        self.wp_pages = self._load_wp_json("pages.json")
-        self.wp_pages_en = self._load_wp_json("pages_en.json")
+
+        # У этого проекта (toponymics-live.net) английские страницы лежат
+        # в общем pages.json — Polylang/похожий плагин не разделил их по lang.
+        # Различаем по URL-маркеру: всё с '/en/' в link — английское.
+        # На случай "правильного" экспорта с разделением — поддерживаем и pages_en.json.
+        all_pages = self._load_wp_json("pages.json")
+        extra_en_pages = self._load_wp_json("pages_en.json")  # обычно []
+
+        ru_pages = [p for p in all_pages if "/en/" not in p.get("link", "")]
+        en_pages_from_main = [p for p in all_pages if "/en/" in p.get("link", "")]
+        en_pages = en_pages_from_main + extra_en_pages
+
+        self.wp_pages = ru_pages
+        self.wp_pages_en = en_pages
         self.wp_media = self._load_wp_json("media.json")
-        # Индексируем для быстрого доступа
-        self.wp_by_id: dict[int, dict] = {p["id"]: p for p in self.wp_pages + self.wp_pages_en}
+
+        # Индекс для быстрого доступа по WP id — обе языковые версии
+        self.wp_by_id: dict[int, dict] = {p["id"]: p for p in ru_pages + en_pages}
 
         self.log(f"Загружено: разметки {len(self.markup_rows)} строк, "
-                 f"WP-страниц {len(self.wp_pages)} (RU) + {len(self.wp_pages_en)} (EN), "
+                 f"WP-страниц {len(ru_pages)} (RU) + {len(en_pages)} (EN), "
                  f"медиа-записей {len(self.wp_media)}.")
+        if en_pages_from_main:
+            self.log(f"  ({len(en_pages_from_main)} английских страниц извлечено "
+                     f"из общего pages.json по URL-маркеру '/en/')")
 
         # Маппинг WP URL → локальный файл (для резолва картинок в контенте)
         self.url_to_local: dict[str, Path] = self._build_media_index()
@@ -184,6 +200,23 @@ class Command(BaseCommand):
         # Шаг 2: связываем переводы
         self._log_header("Шаг 2: связывание переводов")
         translation_rows = [r for r in self.markup_rows if r.action.startswith("english_of:")]
+
+        # Сортируем по топологии родителей в RU-дереве: если RU id=662 (About)
+        # перевели перед RU id=49 (Контакты), то и EN-переводы должны идти в
+        # том же порядке — иначе wagtail-localize не сможет привязать
+        # английского ребёнка к ещё не существующему английскому родителю.
+        ru_id_order = {row.wp_id: i for i, row in enumerate(sorted_rows)}
+
+        def translation_sort_key(row):
+            # Извлекаем RU id из "english_of:NNN"
+            try:
+                ru_id = int(row.action.partition(":")[2])
+            except ValueError:
+                return float("inf")
+            return ru_id_order.get(ru_id, float("inf"))
+
+        translation_rows.sort(key=translation_sort_key)
+
         for row in translation_rows:
             try:
                 self._link_translation(row)
@@ -374,6 +407,13 @@ class Command(BaseCommand):
                    wp_data: dict, blocks: list[tuple[str, Any]]):
         """Заполняет поля страницы в зависимости от её типа."""
         page.title = row.title
+
+        # По умолчанию показываем в меню — кроме footer-only страниц
+        # (политика, условия использования и т.п.)
+        footer_only_keywords = ("footer", "policy", "политик", "правила")
+        notes_lower = (row.notes or "").lower()
+        is_footer_only = any(kw in notes_lower for kw in footer_only_keywords)
+        page.show_in_menus = not is_footer_only
 
         # У всех Page-типов есть body как StreamField
         if hasattr(page, "body"):
@@ -589,6 +629,24 @@ class Command(BaseCommand):
         # Обновляем поля английского перевода
         en_specific = en_translation.specific
         en_specific.title = row.title
+
+        # Slug: берём английский из WP-данных, не оставляем дублирование русского
+        wp_slug = wp_en.get("slug")
+        if wp_slug and wp_slug != en_specific.slug:
+            # Проверим, что slug не занят другой страницей того же родителя
+            parent = en_specific.get_parent()
+            sibling_conflict = (
+                parent.get_children()
+                .filter(slug=wp_slug)
+                .exclude(pk=en_specific.pk)
+                .exists()
+            )
+            if not sibling_conflict:
+                en_specific.slug = wp_slug
+                self.log(f"  - slug: {en_specific.slug!r} → `{wp_slug}`")
+            else:
+                self.log(f"  - ⚠ slug `{wp_slug}` уже занят у соседа, оставляем `{en_specific.slug}`")
+
         if hasattr(en_specific, "body"):
             en_specific.body = self._blocks_to_streamfield_value(final_blocks, type(en_specific), "body")
         en_specific.save_revision().publish()

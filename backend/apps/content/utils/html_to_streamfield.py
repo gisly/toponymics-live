@@ -205,13 +205,20 @@ class HtmlToStreamField:
             self._add_paragraph(f"<p>{text}</p>")
 
     def _handle_paragraph_with_images(self, p_tag: Tag) -> None:
-        """Параграф может содержать изображения — их надо вынести в image-блоки."""
+        """Параграф может содержать изображения — их надо вынести в image-блоки.
+        Также — псевдо-списки на маркерах ►•◦→★ и псевдо-цитаты в угловых кавычках.
+        """
         images = p_tag.find_all("img")
         if not images:
             clean_html = self._clean_inline_html(p_tag)
             text_content = BeautifulSoup(clean_html, "html.parser").get_text(strip=True)
             if text_content:
-                # Сохраняем как <p>...</p>
+                # Попробуем распознать псевдо-список или цитату до того,
+                # как просто положить как paragraph
+                if self._try_emit_pseudo_quote(text_content):
+                    return
+                if self._try_emit_pseudo_list(text_content, clean_html):
+                    return
                 self.result.blocks.append(("paragraph", clean_html))
             return
 
@@ -224,7 +231,84 @@ class HtmlToStreamField:
         remaining_html = self._clean_inline_html(p_tag)
         remaining_text = BeautifulSoup(remaining_html, "html.parser").get_text(strip=True)
         if remaining_text:
+            if self._try_emit_pseudo_quote(remaining_text):
+                return
+            if self._try_emit_pseudo_list(remaining_text, remaining_html):
+                return
             self.result.blocks.append(("paragraph", remaining_html))
+
+    # ─── Распознавание псевдо-списков и псевдо-цитат ───────────────────
+
+    # Маркеры, после которых может идти пункт списка
+    _LIST_MARKERS = ["►", "▶", "•", "◦", "★", "✦", "✱"]
+
+    def _try_emit_pseudo_list(self, text_content: str, original_html: str) -> bool:
+        """Если в параграфе ≥2 одинаковых маркера ►/•/◦ — разбиваем в настоящий <ul>.
+
+        Возвращает True если разобрали (и блок уже добавлен), иначе False.
+        """
+        # Считаем вхождения каждого маркера
+        for marker in self._LIST_MARKERS:
+            count = text_content.count(marker)
+            if count < 2:
+                continue
+
+            # Разбиваем по этому маркеру. Берём из чистого текста, не из HTML,
+            # потому что inline-форматирование в псевдо-списках почти никогда не критично.
+            parts = [p.strip() for p in text_content.split(marker) if p.strip()]
+            if len(parts) < 2:
+                continue
+
+            # Первый кусок — это "вступление" перед списком, например
+            # "The GIS platform enables:"
+            # Если в нём есть текст — это intro, оформляем отдельным параграфом
+            intro = parts[0]
+            list_items = parts[1:]
+
+            # Эвристика: если первая часть слишком короткая (нет вступления —
+            # маркер был в самом начале), не делаем отдельный параграф
+            if intro and len(intro) > 1:
+                # Убираем хвостовые двоеточия для красоты — оставим как есть
+                self.result.blocks.append(("paragraph", f"<p>{intro}</p>"))
+
+            # Строим настоящий <ul>
+            lis = "".join(f"<li>{item}</li>" for item in list_items)
+            self.result.blocks.append(("paragraph", f"<ul>{lis}</ul>"))
+            return True
+
+        return False
+
+    def _try_emit_pseudo_quote(self, text_content: str) -> bool:
+        """Если параграф обёрнут в угловые/двойные кавычки и достаточно длинный —
+        преобразуем в quote-блок.
+
+        Признаки:
+        - Начинается с ❪ ❮ « „ и заканчивается ❫ ❯ » " (или похожими)
+        - Длина минимум ~30 символов (короткие "..." не цитата)
+        """
+        if len(text_content) < 30:
+            return False
+
+        # Парные кавычки: открывающая → закрывающая
+        quote_pairs = [
+            ("❪", "❫"), ("❮", "❯"), ("«", "»"), ("„", "“"), ("“", "”"),
+            ("‹", "›"),
+        ]
+
+        for open_q, close_q in quote_pairs:
+            if text_content.startswith(open_q) and text_content.rstrip().endswith(close_q):
+                # Снимаем кавычки и пробелы
+                inner = text_content[len(open_q):-len(close_q)].strip()
+                if inner:
+                    self.result.blocks.append(("quote", {
+                        "text": inner,
+                        "attribution": "",
+                    }))
+                    return True
+
+        return False
+
+    # ─── Конец распознавания ────────────────────────────────────────────
 
     def _add_paragraph(self, html: str) -> None:
         """Добавляет блок параграфа с очисткой HTML."""

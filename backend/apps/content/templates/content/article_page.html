@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags streamfield_tags %}
+
+{% block og_image %}
+    {% if page.cover_image %}
+        {% image page.cover_image fill-1200x630 as og_img %}
+        <meta property="og:image" content="{{ og_img.url }}" />
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<article class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+    {# Хлебные крошки — родительский раздел #}
+    {% with parent=page.get_parent.specific %}
+    {% if parent and parent.specific_class != home_page_class %}
+    <nav class="text-sm text-stone-500 mb-4">
+        <a href="{% pageurl parent %}" class="hover:text-stone-900">{{ parent.title }}</a>
+    </nav>
+    {% endif %}
+    {% endwith %}
+
+    <header class="mb-8">
+        <h1 class="text-3xl font-semibold text-stone-900 leading-tight mb-3">{{ page.title }}</h1>
+        {% if page.intro %}
+        <p class="text-lg text-stone-700 leading-relaxed">{{ page.intro }}</p>
+        {% endif %}
+        {% if page.publish_date %}
+        <time datetime="{{ page.publish_date|date:'c' }}" class="block mt-3 text-sm text-stone-500">
+            {{ page.publish_date|date:"j F Y" }}
+        </time>
+        {% endif %}
+    </header>
+
+    {% if page.cover_image %}
+    <figure class="mb-8">
+        {% image page.cover_image fill-1200x600 class="w-full rounded-md" %}
+    </figure>
+    {% endif %}
+
+    {% if page.body %}
+    <div class="prose-content">
+        {% render_streamfield page.body %}
+    </div>
+    {% endif %}
+</article>
+{% endblock %}

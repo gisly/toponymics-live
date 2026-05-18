@@ -1,0 +1,7 @@
+{% load wagtailcore_tags %}
+{% for item in items %}
+    <a href="{% pageurl item %}"
+       class="{% if current_page and current_page.path|stringformat:'s'|slice:':12' == item.path|stringformat:'s'|slice:':12' %}text-stone-900 font-medium{% else %}text-stone-600 hover:text-stone-900{% endif %}">
+        {{ item.title }}
+    </a>
+{% endfor %}
