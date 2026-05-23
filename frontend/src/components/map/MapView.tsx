@@ -2,13 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
-import { useTranslation } from "react-i18next";
 import { fetchToponymsGeoJSON, ToponymFilters, ToponymGeoJSON } from "../../api/toponyms";
 import ToponymPopup from "./ToponymPopup";
 import FiltersSidebar from "./FiltersSidebar";
 import { setMapLanguage, MapLanguage } from "./mapLanguage";
-
-const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || "/map-style/toponymics-live.json";
 
 // Регистрируем pmtiles:// протокол в MapLibre один раз на модуль.
 // После этого можно в style.json использовать "url": "pmtiles://..."
@@ -28,12 +25,24 @@ const LANGUAGE_COLORS: Record<string, string> = {
 interface Props {
   filters: ToponymFilters;
   onFiltersChange: (f: ToponymFilters) => void;
+  /** Язык подписей карты. Если не передан — 'ru'. */
+  lang?: MapLanguage;
+  /** Начальный центр карты [долгота, широта]. По умолчанию [110, 62]. */
+  mapStyleUrl?: string;
+  initialCenter?: [number, number];
+  /** Начальный зум. По умолчанию 4. */
+  initialZoom?: number;
 }
 
-export default function MapView({ filters, onFiltersChange }: Props) {
-  const { i18n } = useTranslation();
-  // Карта понимает только ru/en. Если в i18n что-то другое — fallback на ru.
-  const mapLang: MapLanguage = i18n.language === "en" ? "en" : "ru";
+export default function MapView({
+  filters,
+  onFiltersChange,
+  lang = "ru",
+  mapStyleUrl,
+  initialCenter = [110, 62],
+  initialZoom = 4,
+}: Props) {
+  const mapLang: MapLanguage = lang;
 
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -67,9 +76,9 @@ export default function MapView({ filters, onFiltersChange }: Props) {
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: MAP_STYLE_URL,
-      center: [110, 62],  // центр Сибири/Эвенкии
-      zoom: 4,
+      style: mapStyleUrl || "/map-style/toponymics-live.json",
+      center: initialCenter,
+      zoom: initialZoom,
       minZoom: 2,
       maxZoom: 17,
       attributionControl: false,

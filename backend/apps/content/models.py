@@ -3,7 +3,8 @@
 
 Стартовый набор:
 - HomePage — главная (только одна, корень)
-- ProjectPage — раздел проекта (О проекте, Платформа, ...)
+- ProjectPage — раздел проекта (О проекте, Картография и топонимика, ...)
+- PlatformPage — страница с встроенной интерактивной картой (одна на сайт)
 - ArticlePage — статья, событие, новость
 - TeamMemberPage — карточка участника команды
 - EventPage — событие
@@ -29,7 +30,12 @@ class HomePage(Page):
     ]
 
     # Тип позволяемых детей — другие наши страницы
-    subpage_types = ["content.ProjectPage", "content.ArticlePage", "content.EventPage"]
+    subpage_types = [
+        "content.ProjectPage",
+        "content.PlatformPage",
+        "content.ArticlePage",
+        "content.EventPage",
+    ]
     parent_page_types = ["wagtailcore.Page"]  # только в корне сайта
 
     class Meta:
@@ -37,7 +43,7 @@ class HomePage(Page):
 
 
 class ProjectPage(Page):
-    """Раздел проекта: 'О проекте', 'Платформа', 'Картография и топонимика', и т.д."""
+    """Раздел проекта: 'О проекте', 'Картография и топонимика', и т.д."""
 
     intro = RichTextField("Вводный текст", blank=True)
     body = StreamField(NarrativeStreamBlock(), blank=True, use_json_field=True)
@@ -60,6 +66,55 @@ class ProjectPage(Page):
 
     class Meta:
         verbose_name = "Раздел"
+
+
+class PlatformPage(Page):
+    """
+    Страница с встроенной интерактивной картой топонимов.
+
+    Карта монтируется как UMD-бандл (см. Этап 1 — frontend/dist-lib/),
+    раздаётся как статика Django из backend/static/map/.
+
+    На странице одна — но Wagtail-localize создаёт по копии на каждый язык.
+    """
+
+    intro = RichTextField(
+        "Вступительный текст (над картой)", blank=True,
+        help_text="Короткое описание платформы. Покажется над картой.",
+    )
+
+    # Начальные параметры карты — редактируемые из админки
+    initial_lng = models.FloatField(
+        "Начальная долгота", default=110.0,
+        help_text="Долгота центра карты при открытии",
+    )
+    initial_lat = models.FloatField(
+        "Начальная широта", default=62.0,
+        help_text="Широта центра карты при открытии",
+    )
+    initial_zoom = models.FloatField(
+        "Начальный зум", default=4.0,
+        help_text="Чем больше, тем сильнее приближено (0 = весь мир, 18 = улица)",
+    )
+
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+        MultiFieldPanel(
+            [
+                FieldPanel("initial_lng"),
+                FieldPanel("initial_lat"),
+                FieldPanel("initial_zoom"),
+            ],
+            heading="Начальный вид карты",
+        ),
+    ]
+
+    # Карта в одном экземпляре, поэтому subpage_types пуст.
+    subpage_types = []
+    parent_page_types = ["content.HomePage"]
+
+    class Meta:
+        verbose_name = "Платформа (карта)"
 
 
 class ArticlePage(Page):

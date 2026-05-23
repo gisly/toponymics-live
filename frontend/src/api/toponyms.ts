@@ -1,4 +1,17 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+// API base URL. По умолчанию — из env (для dev SPA-режима),
+// но в library-режиме можно переопределить через setApiBase().
+let API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+/** Устанавливает базовый URL Django API. Применяется ко всем последующим fetch'ам. */
+export function setApiBase(base: string): void {
+  // Убираем хвостовой слэш чтобы не было двойных слэшей в URL'ах
+  API_BASE = base.replace(/\/$/, "");
+}
+
+/** Возвращает текущий базовый URL (полезно для отладки). */
+export function getApiBase(): string {
+  return API_BASE;
+}
 
 export interface Language {
   iso: string;

@@ -54,6 +54,8 @@ services:
       - ./backend:/app
       - ./media-local:/app/media
       - ./data-migration:/data-migration   # для импортёра
+      - ./pmtiles-local:/app/pmtiles-local:ro
+      - ./map-style:/app/map-style:ro
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DJANGO_DEBUG: ${DJANGO_DEBUG}

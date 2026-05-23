@@ -10,7 +10,7 @@
   "sources": {
     "openmaptiles": {
       "type": "vector",
-      "url": "pmtiles:///pmtiles-local/russia-asian.pmtiles",
+      "url": "pmtiles://{PMTILES_URL}",
       "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
     }
   },

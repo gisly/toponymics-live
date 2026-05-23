@@ -55,3 +55,8 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+backend/static/map/toponymics-map.umd.js
+backend/static/map/toponymics-map.css
+backend/static/map/toponymics-map.umd.js.map
+pmtiles-local/

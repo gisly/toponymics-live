@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:lib": "tsc -b && cross-env BUILD_LIB=1 vite build",
+    "build:lib:nocheck": "cross-env BUILD_LIB=1 vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx"
   },
@@ -33,6 +35,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4",

@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import MapView from "../components/map/MapView";
 import { ToponymFilters } from "../api/toponyms";
 
 export default function MapPage() {
+  const { i18n } = useTranslation();
+  const lang = i18n.language === "en" ? "en" : "ru";
   const [filters, setFilters] = useState<ToponymFilters>({});
   return (
     <div
@@ -15,7 +18,7 @@ export default function MapPage() {
         display: "flex",
       }}
     >
-      <MapView filters={filters} onFiltersChange={setFilters} />
+      <MapView filters={filters} onFiltersChange={setFilters} lang={lang} />
     </div>
   );
 }

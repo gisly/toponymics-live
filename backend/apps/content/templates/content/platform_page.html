@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static wagtailcore_tags i18n %}
+
+{# В <head> подключаем CSS карты. #}
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'map/toponymics-map.css' %}" />
+    <style>
+        /* Контейнер карты — на всю доступную высоту экрана за вычетом шапки и небольшого зазора. */
+        /* 100dvh лучше 100vh на мобильных (учитывает динамическую панель браузера). */
+        .map-host {
+            width: 100%;
+            height: calc(100dvh - 200px);
+            min-height: 480px;
+            border: 1px solid rgb(231 229 228); /* stone-200 */
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background: rgb(250 250 249); /* stone-50 */
+            position: relative;
+        }
+        /* Сообщение, пока JS не загрузился (или если упал). Заменяется бандлом при монтировании. */
+        .map-host__loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgb(120 113 108); /* stone-500 */
+            font-size: 0.875rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<article class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <header class="mb-6">
+        <h1 class="text-3xl font-semibold text-stone-900 leading-tight mb-3">{{ page.title }}</h1>
+        {% if page.intro %}
+        <div class="text-base text-stone-700 leading-relaxed max-w-3xl">
+            {{ page.intro|richtext }}
+        </div>
+        {% endif %}
+    </header>
+
+    {% comment %}
+        Контейнер карты. data-* атрибуты — fallback на случай, если mount() не получит options.
+        Сам бандл монтируется через <script> ниже и передаёт options явно.
+        data-map-style-url ведёт на Django-view, которая на лету подменит {PMTILES_URL}
+        внутри JSON стиля. См. apps/content/views.py.
+    {% endcomment %}
+    <div id="toponymics-map-root"
+         class="map-host"
+         data-lang="{{ LANGUAGE_CODE }}"
+         data-api-base=""
+         data-map-style-url="/map-style/toponymics-live.json"
+         data-initial-lng="{{ page.initial_lng }}"
+         data-initial-lat="{{ page.initial_lat }}"
+         data-initial-zoom="{{ page.initial_zoom }}">
+        <div class="map-host__loading">{% trans "Загрузка карты…" %}</div>
+    </div>
+</article>
+{% endblock %}
+
+{# В конце <body> подключаем JS бандла. #}
+{% block extra_body %}
+    <script src="{% static 'map/toponymics-map.umd.js' %}" defer></script>
+    <script>
+        // Ждём, пока бандл загрузится (defer => после парсинга DOM, но window.ToponymicsMap
+        // появится только после выполнения скрипта).
+        document.addEventListener('DOMContentLoaded', function () {
+            var tryMount = function () {
+                if (!window.ToponymicsMap || typeof window.ToponymicsMap.mount !== 'function') {
+                    // Бандл ещё не выполнился — попробуем ещё раз через тик.
+                    return setTimeout(tryMount, 30);
+                }
+                var el = document.getElementById('toponymics-map-root');
+                if (!el) return;
+
+                window.ToponymicsMap.mount('toponymics-map-root', {
+                    lang: el.dataset.lang || 'ru',
+                    apiBase: el.dataset.apiBase || '',
+                    mapStyleUrl: el.dataset.mapStyleUrl || '/map-style/toponymics-live.json',
+                    initialCenter: [
+                        parseFloat(el.dataset.initialLng) || 110,
+                        parseFloat(el.dataset.initialLat) || 62
+                    ],
+                    initialZoom: parseFloat(el.dataset.initialZoom) || 4
+                });
+            };
+            tryMount();
+        });
+    </script>
+{% endblock %}
