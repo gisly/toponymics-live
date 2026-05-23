@@ -6,6 +6,7 @@ import { fetchToponymsGeoJSON, ToponymFilters, ToponymGeoJSON } from "../../api/
 import ToponymPopup from "./ToponymPopup";
 import FiltersSidebar from "./FiltersSidebar";
 import { setMapLanguage, MapLanguage } from "./mapLanguage";
+import { RulerControl } from "./RulerControl";
 
 // Регистрируем pmtiles:// протокол в MapLibre один раз на модуль.
 // После этого можно в style.json использовать "url": "pmtiles://..."
@@ -27,8 +28,9 @@ interface Props {
   onFiltersChange: (f: ToponymFilters) => void;
   /** Язык подписей карты. Если не передан — 'ru'. */
   lang?: MapLanguage;
-  /** Начальный центр карты [долгота, широта]. По умолчанию [110, 62]. */
+  /** URL JSON-стиля MapLibre. По умолчанию /map-style/toponymics-live.json. */
   mapStyleUrl?: string;
+  /** Начальный центр карты [долгота, широта]. По умолчанию [110, 62]. */
   initialCenter?: [number, number];
   /** Начальный зум. По умолчанию 4. */
   initialZoom?: number;
@@ -46,6 +48,7 @@ export default function MapView({
 
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const rulerRef = useRef<RulerControl | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [data, setData] = useState<ToponymGeoJSON | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,11 +65,19 @@ export default function MapView({
     return () => { cancelled = true; };
   }, [JSON.stringify(filters)]);
 
-  // Синхронизация языка подписей карты с i18n.
+  // Синхронизация языка подписей карты с props.
   // setMapLanguage сам подождёт загрузки стиля если ещё не загрузился.
   useEffect(() => {
     if (mapRef.current) {
       setMapLanguage(mapRef.current, mapLang);
+    }
+    // Линейка тоже знает про язык — для подписей "км"/"km", тултипов и подсказки.
+    // Если линейка уже есть — пересоздаём с новым языком (проще, чем добавлять setLang).
+    if (mapRef.current && rulerRef.current) {
+      mapRef.current.removeControl(rulerRef.current);
+      const ruler = new RulerControl({ lang: mapLang });
+      mapRef.current.addControl(ruler, "top-right");
+      rulerRef.current = ruler;
     }
   }, [mapLang]);
 
@@ -85,6 +96,12 @@ export default function MapView({
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
+
+    // Линейка — отдельной группой кнопок ниже NavigationControl
+    const ruler = new RulerControl({ lang: mapLang });
+    map.addControl(ruler, "top-right");
+    rulerRef.current = ruler;
+
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
     map.addControl(
       new maplibregl.AttributionControl({
@@ -179,6 +196,7 @@ export default function MapView({
     return () => {
       map.remove();
       mapRef.current = null;
+      rulerRef.current = null;
     };
   }, []);
 
