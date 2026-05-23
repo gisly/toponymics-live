@@ -33,6 +33,41 @@ class MapEmbedBlock(blocks.StructBlock):
         label = "Карта (встраиваемая)"
 
 
+class CollapsibleInnerStreamBlock(blocks.StreamBlock):
+    """Подмножество блоков, разрешённых внутри сворачиваемой секции.
+
+    Намеренно НЕ включаем map_embed (карта внутри ката — странно) и
+    сам collapsible (чтобы избежать бесконечной вложенности).
+    """
+
+    paragraph = blocks.RichTextBlock(
+        features=["bold", "italic", "link", "ol", "ul", "blockquote"],
+        label="Параграф",
+    )
+    heading = blocks.CharBlock(form_classname="title", label="Заголовок", icon="title")
+    image = ImageChooserBlock(label="Изображение")
+    quote = QuoteBlock()
+
+
+class CollapsibleBlock(blocks.StructBlock):
+    """Сворачиваемая секция: заголовок + скрытое содержимое.
+
+    Рендерится как нативный <details><summary>, без JavaScript.
+    По умолчанию свёрнут. Содержимое индексируется Google и
+    доступно при печати (см. CSS @media print).
+    """
+
+    summary = blocks.CharBlock(
+        label="Заголовок (видимый текст)",
+        help_text="Например: «Подробнее о методологии» или «Список источников»",
+    )
+    content = CollapsibleInnerStreamBlock(label="Скрытое содержимое")
+
+    class Meta:
+        icon = "plus"
+        label = "Сворачиваемый блок"
+
+
 class NarrativeStreamBlock(blocks.StreamBlock):
     """Универсальный набор блоков для нарративов и описаний."""
 
@@ -43,4 +78,5 @@ class NarrativeStreamBlock(blocks.StreamBlock):
     heading = blocks.CharBlock(form_classname="title", label="Заголовок", icon="title")
     image = ImageChooserBlock(label="Изображение")
     quote = QuoteBlock()
+    collapsible = CollapsibleBlock()
     map_embed = MapEmbedBlock()

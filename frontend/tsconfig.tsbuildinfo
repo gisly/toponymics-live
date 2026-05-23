@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/i18n.ts","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/pages/HomePage.tsx","./src/pages/MapPage.tsx"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/i18n.ts","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/api/toponyms.ts","./src/components/map/FiltersSidebar.tsx","./src/components/map/MapView.tsx","./src/components/map/ToponymPopup.tsx","./src/pages/HomePage.tsx","./src/pages/MapPage.tsx"],"errors":true,"version":"5.9.3"}

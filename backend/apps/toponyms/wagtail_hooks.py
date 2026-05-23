@@ -1,73 +1,133 @@
-"""Wagtail snippets и viewsets для топонимов.
+"""Регистрация моделей topyms как Wagtail Snippets.
 
-Snippets — это то, как Wagtail-админка покажет наши не-Page модели:
-Toponym, HistoricalMap, Region, FeatureType, MediaItem.
+Snippet'ы — это объекты, доступные в Wagtail-админке через раздел "Snippets".
+Это удобный способ показать справочники и контентные модели редакторам.
 """
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
-from .models import FeatureType, HistoricalMap, MediaItem, Region, Toponym
+from .models import (
+    FeatureType,
+    GeoSystem,
+    HistoricalMap,
+    Language,
+    MotivationType,
+    Narration,
+    NarrationTranslation,
+    Person,
+    Place,
+    SourceReference,
+    Toponym,
+)
 
 
-@register_snippet
-class RegionViewSet(SnippetViewSet):
-    model = Region
+# ─── Группировка в админке ───────────────────────────────────────────
+
+
+class LanguageViewSet(SnippetViewSet):
+    model = Language
     icon = "globe"
-    menu_label = "Регионы"
-    menu_order = 100
-    list_display = ["name", "slug"]
-    search_fields = ["name"]
+    list_display = ["iso", "name_ru", "name_en", "name_native"]
+    search_fields = ["iso", "name_ru", "name_en"]
 
 
-@register_snippet
 class FeatureTypeViewSet(SnippetViewSet):
     model = FeatureType
     icon = "tag"
-    menu_label = "Типы объектов"
-    menu_order = 110
-    list_display = ["name", "code", "sort_order"]
-    search_fields = ["name", "code"]
+    list_display = ["code", "name_ru", "name_en", "language", "sort_order"]
+    list_filter = ["language"]
+    search_fields = ["code", "name_ru", "name_en"]
 
 
-@register_snippet
-class MediaItemViewSet(SnippetViewSet):
-    model = MediaItem
-    icon = "image"
-    menu_label = "Медиа"
-    menu_order = 120
-    list_display = ["caption", "type", "credit", "created_at"]
-    list_filter = ["type"]
-    search_fields = ["caption", "credit"]
+class MotivationTypeViewSet(SnippetViewSet):
+    model = MotivationType
+    icon = "openquote"
+    list_display = ["short_name_ru", "short_name_en"]
+    search_fields = ["short_name_ru", "short_name_en"]
 
 
-@register_snippet
+class SourceReferenceViewSet(SnippetViewSet):
+    model = SourceReference
+    icon = "doc-full"
+    list_display = ["__str__"]
+    search_fields = ["description"]
+
+
+class PersonViewSet(SnippetViewSet):
+    model = Person
+    icon = "user"
+    list_display = ["last_name", "first_name", "patronymic"]
+    search_fields = ["last_name", "first_name", "patronymic"]
+
+
+class GeoSystemViewSet(SnippetViewSet):
+    model = GeoSystem
+    icon = "site"
+    list_display = ["name_ru", "name_en"]
+    search_fields = ["name_ru", "name_en"]
+
+
 class HistoricalMapViewSet(SnippetViewSet):
     model = HistoricalMap
+    icon = "image"
+    list_display = ["area_name_ru", "author", "collector", "is_archive"]
+    list_filter = ["is_archive", "geo_systems"]
+    search_fields = ["area_name_ru", "area_name_en", "place_collected"]
+
+
+class PlaceViewSet(SnippetViewSet):
+    model = Place
     icon = "site"
-    menu_label = "Рукописные карты"
-    menu_order = 200
-    list_display = ["title", "creator", "date_drawn", "region", "georeference_status"]
-    list_filter = ["region", "georeference_status", "language"]
-    search_fields = ["title", "creator"]
+    list_display = ["__str__", "feature_type", "is_coordinates_approximate", "date_added"]
+    list_filter = ["feature_type", "is_coordinates_approximate", "historical_map"]
+    search_fields = ["location_comment", "osm_id"]
 
 
-@register_snippet
 class ToponymViewSet(SnippetViewSet):
     model = Toponym
-    icon = "pin"
-    menu_label = "Топонимы"
-    menu_order = 210
-    list_display = [
-        "name_ru",
-        "name_evn_cyrillic",
-        "feature_type",
-        "region",
-        "confidence",
-    ]
-    list_filter = ["feature_type", "region", "confidence"]
-    search_fields = [
-        "name_ru",
-        "name_evn_cyrillic",
-        "name_evn_latin",
-        "name_en",
-    ]
+    icon = "tag"
+    list_display = ["name", "language", "translation_ru", "motivation", "historical_map"]
+    list_filter = ["language", "motivation", "historical_map"]
+    search_fields = ["name", "name_latin", "translation_ru", "translation_en"]
+
+
+class NarrationViewSet(SnippetViewSet):
+    model = Narration
+    icon = "openquote"
+    list_display = ["__str__", "narrator", "place", "language_original"]
+    list_filter = ["language_original"]
+    search_fields = ["text_original"]
+
+
+class NarrationTranslationViewSet(SnippetViewSet):
+    model = NarrationTranslation
+    icon = "openquote"
+    list_display = ["narration", "language"]
+    list_filter = ["language"]
+
+
+class ToponymyViewSetGroup(SnippetViewSetGroup):
+    """Группа «Топонимика» — собирает все модели в одно меню."""
+
+    menu_label = "Топонимика"
+    menu_icon = "site"
+    menu_order = 200
+    items = (
+        # Основные сущности — сверху
+        ToponymViewSet,
+        PlaceViewSet,
+        HistoricalMapViewSet,
+        # Нарративы
+        NarrationViewSet,
+        NarrationTranslationViewSet,
+        # Справочники — внизу
+        LanguageViewSet,
+        FeatureTypeViewSet,
+        MotivationTypeViewSet,
+        SourceReferenceViewSet,
+        PersonViewSet,
+        GeoSystemViewSet,
+    )
+
+
+register_snippet(ToponymyViewSetGroup)

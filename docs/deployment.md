@@ -29,9 +29,9 @@ docker compose exec django python manage.py seed_demo
 
 ## Карта — PMTiles
 
-См. `map-style/README.md` для инструкций по получению `siberia.pmtiles`.
+См. `map-style/README.md` для инструкций по получению `russia-asian.pmtiles`.
 
-Положи файл в `pmtiles-local/siberia.pmtiles` — он автоматически замаппится в контейнер frontend как `/pmtiles/siberia.pmtiles`.
+Положи файл в `pmtiles-local/russia-asian.pmtiles` — он автоматически замаппится в контейнер frontend как `/pmtiles/russia-asian.pmtiles`.
 
 ## Production (на VPS)
 

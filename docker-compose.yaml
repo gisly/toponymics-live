@@ -88,6 +88,7 @@ services:
       - /app/node_modules
       - ./map-style:/app/public/map-style:ro
       - ./pmtiles-local:/app/public/pmtiles:ro
+
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL}
       VITE_PMTILES_URL: ${VITE_PMTILES_URL}

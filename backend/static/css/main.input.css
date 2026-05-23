@@ -51,4 +51,25 @@
   .prose-content img {
     @apply rounded-md;
   }
+
+  /* Сворачиваемый блок: поворачиваем стрелочку при раскрытии */
+  details[open] > summary .details-marker {
+    transform: rotate(180deg);
+  }
+  /* Убираем нативную стрелочку браузера (мы рисуем свою SVG) */
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+  details > summary {
+    list-style: none;
+  }
+  /* При печати — раскрываем все детали автоматически */
+  @media print {
+    details {
+      open: true;
+    }
+    details > summary {
+      display: list-item;
+    }
+  }
 }

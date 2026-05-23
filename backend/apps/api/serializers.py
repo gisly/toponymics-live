@@ -1,181 +1,122 @@
-"""DRF serializers для API."""
+"""DRF сериализаторы для API топонимов."""
 from rest_framework import serializers
 
 from apps.toponyms.models import (
     FeatureType,
     HistoricalMap,
-    MediaItem,
-    Region,
+    Language,
+    MotivationType,
+    Person,
+    Place,
     Toponym,
-    ToponymOnMap,
 )
 
 
-class RegionSerializer(serializers.ModelSerializer):
-    bbox = serializers.SerializerMethodField()
-
+class LanguageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Region
-        fields = ["id", "name", "slug", "description", "bbox"]
-
-    def get_bbox(self, obj):
-        if all([obj.bbox_west, obj.bbox_south, obj.bbox_east, obj.bbox_north]):
-            return [float(obj.bbox_west), float(obj.bbox_south),
-                    float(obj.bbox_east), float(obj.bbox_north)]
-        return None
+        model = Language
+        fields = ["iso", "name_ru", "name_en", "name_native"]
 
 
 class FeatureTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeatureType
-        fields = ["id", "code", "name", "icon", "default_color", "sort_order"]
+        fields = ["code", "name_ru", "name_en", "icon", "default_color", "sort_order"]
 
 
-class MediaItemSerializer(serializers.ModelSerializer):
-    file_url = serializers.SerializerMethodField()
-
+class MotivationTypeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MediaItem
-        fields = ["id", "type", "file_url", "caption", "credit", "license", "created_at"]
+        model = MotivationType
+        fields = ["id", "short_name_ru", "short_name_en", "comment_ru", "comment_en"]
 
-    def get_file_url(self, obj):
-        request = self.context.get("request")
-        url = obj.file.url
-        return request.build_absolute_uri(url) if request else url
+
+class PersonSerializer(serializers.ModelSerializer):
+    full_name = serializers.ReadOnlyField()
+    class Meta:
+        model = Person
+        fields = ["id", "full_name", "comment"]
 
 
 class HistoricalMapListSerializer(serializers.ModelSerializer):
-    """Лёгкий serializer для списка."""
-
-    thumbnail_url = serializers.SerializerMethodField()
+    author = PersonSerializer(read_only=True)
+    collector = PersonSerializer(read_only=True)
+    toponym_count = serializers.SerializerMethodField()
 
     class Meta:
         model = HistoricalMap
-        fields = [
-            "id", "title", "slug", "creator", "date_drawn",
-            "region", "language", "georeference_status", "thumbnail_url",
-        ]
+        fields = ["id", "area_name_ru", "area_name_en", "author", "collector",
+                  "is_archive", "scanned_image", "image_link", "toponym_count"]
 
-    def get_thumbnail_url(self, obj):
-        img = obj.thumbnail or obj.scanned_image
-        if not img:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(img.url) if request else img.url
+    def get_toponym_count(self, obj):
+        return obj.toponyms.count()
 
 
 class HistoricalMapDetailSerializer(HistoricalMapListSerializer):
-    """Полный serializer для детальной страницы."""
-
-    scanned_image_url = serializers.SerializerMethodField()
-    related_media = MediaItemSerializer(many=True, read_only=True)
-
     class Meta(HistoricalMapListSerializer.Meta):
         fields = HistoricalMapListSerializer.Meta.fields + [
-            "description",
-            "date_collected",
-            "scanned_image_url",
-            "georeference_data",
-            "related_media",
+            "place_collected", "comment_collected_ru", "comment_collected_en",
+            "date_collected", "map_latitude", "map_longitude",
         ]
-
-    def get_scanned_image_url(self, obj):
-        if not obj.scanned_image:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(obj.scanned_image.url) if request else obj.scanned_image.url
-
-
-class ToponymOnMapInlineSerializer(serializers.ModelSerializer):
-    historical_map = HistoricalMapListSerializer(read_only=True)
-
-    class Meta:
-        model = ToponymOnMap
-        fields = ["historical_map", "pixel_x", "pixel_y", "label_as_written", "note"]
 
 
 class ToponymListSerializer(serializers.ModelSerializer):
-    """Минимальный serializer — список + карта."""
+    """Короткий формат для списков."""
+    language = serializers.CharField(source="language.iso", read_only=True)
+    feature_type = serializers.CharField(source="place.feature_type.code", read_only=True)
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
 
     class Meta:
         model = Toponym
-        fields = [
-            "id",
-            "name_ru",
-            "name_evn_cyrillic",
-            "name_evn_latin",
-            "name_en",
-            "feature_type",
-            "region",
-            "latitude",
-            "longitude",
-            "confidence",
-        ]
+        fields = ["id", "name", "name_latin", "language", "translation_ru",
+                  "translation_en", "feature_type", "latitude", "longitude"]
+
+    def get_latitude(self, obj):
+        return float(obj.place.latitude) if obj.place.latitude else None
+
+    def get_longitude(self, obj):
+        return float(obj.place.longitude) if obj.place.longitude else None
 
 
 class ToponymDetailSerializer(serializers.ModelSerializer):
-    """Полный serializer для детальной страницы."""
-
-    feature_type = FeatureTypeSerializer(read_only=True)
-    region = RegionSerializer(read_only=True)
-    map_positions = ToponymOnMapInlineSerializer(many=True, read_only=True)
-    related_media = MediaItemSerializer(many=True, read_only=True)
+    """Полный формат для попапа карты и детальной страницы."""
+    language = LanguageSerializer(read_only=True)
+    feature_type = FeatureTypeSerializer(source="place.feature_type", read_only=True)
+    motivation = MotivationTypeSerializer(read_only=True)
+    informant = PersonSerializer(read_only=True)
+    historical_map = HistoricalMapListSerializer(read_only=True)
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+    is_coordinates_approximate = serializers.BooleanField(
+        source="place.is_coordinates_approximate", read_only=True,
+    )
+    location_comment = serializers.CharField(source="place.location_comment", read_only=True)
+    # Все имена этого же места
+    other_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Toponym
         fields = [
-            "id",
-            "name_ru",
-            "name_ru_variants",
-            "name_evn_cyrillic",
-            "name_evn_latin",
-            "name_evn_ipa",
-            "name_evn_variants",
-            "name_en",
-            "feature_type",
-            "region",
-            "latitude",
-            "longitude",
-            "confidence",
-            "etymology",
-            "narrative",
-            "map_positions",
-            "related_media",
-            "created_at",
-            "updated_at",
+            "id", "name", "name_latin", "name_ipa",
+            "language", "feature_type",
+            "translation_ru", "translation_en",
+            "motivation", "motivation_comment", "linguistic_means",
+            "informant", "historical_map", "number_on_map",
+            "alternative_forms",
+            "latitude", "longitude", "is_coordinates_approximate",
+            "location_comment", "other_names",
         ]
 
+    def get_latitude(self, obj):
+        return float(obj.place.latitude) if obj.place.latitude else None
 
-class ToponymGeoJSONSerializer(serializers.ModelSerializer):
-    """GeoJSON-формат для отображения на карте.
+    def get_longitude(self, obj):
+        return float(obj.place.longitude) if obj.place.longitude else None
 
-    Не использует DRF-gis (его нет в зависимостях), формируем GeoJSON вручную.
-    """
-
-    type = serializers.SerializerMethodField()
-    geometry = serializers.SerializerMethodField()
-    properties = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Toponym
-        fields = ["type", "geometry", "properties"]
-
-    def get_type(self, obj):
-        return "Feature"
-
-    def get_geometry(self, obj):
-        return {
-            "type": "Point",
-            "coordinates": [float(obj.longitude), float(obj.latitude)],
-        }
-
-    def get_properties(self, obj):
-        return {
-            "id": obj.id,
-            "name_ru": obj.name_ru,
-            "name_evn_cyrillic": obj.name_evn_cyrillic,
-            "name_evn_latin": obj.name_evn_latin,
-            "feature_type_id": obj.feature_type_id,
-            "region_id": obj.region_id,
-            "confidence": obj.confidence,
-        }
+    def get_other_names(self, obj):
+        others = obj.place.toponyms.exclude(id=obj.id)
+        return [
+            {"id": t.id, "name": t.name, "language": t.language.iso,
+             "translation_ru": t.translation_ru}
+            for t in others
+        ]

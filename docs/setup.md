@@ -60,7 +60,7 @@ POSTGRES_PORT=5432
 REDIS_URL=redis://redis:6379/0
 
 VITE_API_BASE_URL=http://localhost:8000
-VITE_PMTILES_URL=/pmtiles/siberia.pmtiles
+VITE_PMTILES_URL=/pmtiles/russia-asian.pmtiles
 VITE_MAP_STYLE_URL=/map-style/style.json
 
 MEDIA_ROOT=/app/media
@@ -181,7 +181,7 @@ mkdir -p pmtiles-local
 # Заходишь на https://app.protomaps.com/downloads/small_planet
 # Выбираешь bbox (West=80, South=50, East=150, North=75 для широкой Сибири)
 # Получаешь файл .pmtiles на email — скачиваешь
-# Кладёшь в pmtiles-local/siberia.pmtiles
+# Кладёшь в pmtiles-local/russia-asian.pmtiles
 
 # 2. Запустить frontend
 docker compose --profile map up -d frontend
