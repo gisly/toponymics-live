@@ -45,7 +45,7 @@ export default function ToponymPopup({ id, onClose }: Props) {
 
   return (
     <>
-      <div className="absolute top-4 right-4 w-96 max-h-[calc(100vh-140px)] overflow-y-auto bg-white rounded-md shadow-xl border border-stone-200">
+      <div className="absolute top-4 right-16 w-96 max-h-[calc(100vh-140px)] overflow-y-auto bg-white rounded-md shadow-xl border border-stone-200">
         <div className="sticky top-0 bg-white border-b border-stone-200 px-4 py-3 flex items-start justify-between gap-2">
           <div className="flex-1">
             {loading && <div className="text-sm text-stone-500">Загрузка…</div>}
@@ -66,7 +66,7 @@ export default function ToponymPopup({ id, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="text-stone-400 hover:text-stone-700 -mr-1 -mt-1"
+            className="shrink-0 w-7 h-7 -mr-1 -mt-0.5 rounded-full flex items-center justify-center text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
             aria-label="Закрыть"
           >
             <X size={18} />
