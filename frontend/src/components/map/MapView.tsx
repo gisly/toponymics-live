@@ -8,31 +8,23 @@ import FiltersSidebar from "./FiltersSidebar";
 import { setMapLanguage, MapLanguage } from "./mapLanguage";
 import { RulerControl } from "./RulerControl";
 
-// Регистрируем pmtiles:// протокол в MapLibre один раз на модуль.
-// После этого можно в style.json использовать "url": "pmtiles://..."
-// и MapLibre сам будет тащить нужные куски через HTTP Range.
 const pmtilesProtocol = new Protocol();
 maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
-// Цвета по языку — для слоя точек
 const LANGUAGE_COLORS: Record<string, string> = {
-  evn: "#d97757",   // тёплый коричнево-оранжевый — эвенкийский в фокусе
-  sah: "#5b8a72",   // зелёный — якутский
-  ru:  "#5b6f9c",   // приглушённый синий — русский
-  ket: "#8b6fad",   // фиолетовый — кетский
-  en:  "#888888",   // серый — английский
+  evn: "#d97757",
+  sah: "#5b8a72",
+  ru:  "#5b6f9c",
+  ket: "#8b6fad",
+  en:  "#888888",
 };
 
 interface Props {
   filters: ToponymFilters;
   onFiltersChange: (f: ToponymFilters) => void;
-  /** Язык подписей карты. Если не передан — 'ru'. */
   lang?: MapLanguage;
-  /** URL JSON-стиля MapLibre. По умолчанию /map-style/toponymics-live.json. */
   mapStyleUrl?: string;
-  /** Начальный центр карты [долгота, широта]. По умолчанию [110, 62]. */
   initialCenter?: [number, number];
-  /** Начальный зум. По умолчанию 4. */
   initialZoom?: number;
 }
 
@@ -49,12 +41,15 @@ export default function MapView({
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const rulerRef = useRef<RulerControl | null>(null);
+  // Готов ли source "toponyms" к приёму данных. Поднимается в map.on("load"),
+  // после addSource. Используется как замок: данные не льются раньше, чем
+  // source создан.
+  const sourceReadyRef = useRef(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [data, setData] = useState<ToponymGeoJSON | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка данных при изменении фильтров
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -65,14 +60,10 @@ export default function MapView({
     return () => { cancelled = true; };
   }, [JSON.stringify(filters)]);
 
-  // Синхронизация языка подписей карты с props.
-  // setMapLanguage сам подождёт загрузки стиля если ещё не загрузился.
   useEffect(() => {
     if (mapRef.current) {
       setMapLanguage(mapRef.current, mapLang);
     }
-    // Линейка тоже знает про язык — для подписей "км"/"km", тултипов и подсказки.
-    // Если линейка уже есть — пересоздаём с новым языком (проще, чем добавлять setLang).
     if (mapRef.current && rulerRef.current) {
       mapRef.current.removeControl(rulerRef.current);
       const ruler = new RulerControl({ lang: mapLang });
@@ -81,7 +72,16 @@ export default function MapView({
     }
   }, [mapLang]);
 
-  // Инициализация карты (один раз)
+  // Закрытие попапа по Esc
+  useEffect(() => {
+    if (selectedId === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedId(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedId]);
+
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
@@ -97,7 +97,6 @@ export default function MapView({
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
 
-    // Линейка — отдельной группой кнопок ниже NavigationControl
     const ruler = new RulerControl({ lang: mapLang });
     map.addControl(ruler, "top-right");
     rulerRef.current = ruler;
@@ -112,17 +111,13 @@ export default function MapView({
     );
 
     map.on("load", () => {
-      // Сразу применяем актуальный язык (стиль грузится с русскими подписями по умолчанию,
-      // если язык EN — мгновенно подменяем после загрузки).
       setMapLanguage(map, mapLang);
 
-      // Источник для топонимов — пока пустой, обновим из effect ниже
       map.addSource("toponyms", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
 
-      // Слой кружков
       map.addLayer({
         id: "toponyms-circles",
         type: "circle",
@@ -155,7 +150,6 @@ export default function MapView({
         },
       });
 
-      // Слой подписей — только на больших зумах
       map.addLayer({
         id: "toponyms-labels",
         type: "symbol",
@@ -176,13 +170,35 @@ export default function MapView({
         },
       });
 
-      // Обработчики кликов
+      // Source готов — теперь данные можно лить.
+      // Если данные пришли раньше события load, эффект ниже отрисует их сразу,
+      // как только увидит, что sourceReadyRef.current стал true.
+      sourceReadyRef.current = true;
+      // Сразу подсасываем актуальные данные (если они уже были загружены)
+      const currentData = dataRef.current;
+      if (currentData) {
+        const src = map.getSource("toponyms") as maplibregl.GeoJSONSource | undefined;
+        if (src) src.setData(currentData);
+      }
+
+      // Клик по точке топонима — открыть попап
       map.on("click", "toponyms-circles", (e) => {
         const f = e.features?.[0];
         if (!f) return;
         const id = f.properties?.id as number;
         setSelectedId(id);
       });
+
+      // Клик по пустому месту карты — закрыть попап
+      map.on("click", (e) => {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ["toponyms-circles"],
+        });
+        if (features.length === 0) {
+          setSelectedId(null);
+        }
+      });
+
       map.on("mouseenter", "toponyms-circles", () => {
         map.getCanvas().style.cursor = "pointer";
       });
@@ -197,19 +213,34 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
       rulerRef.current = null;
+      sourceReadyRef.current = false;
     };
   }, []);
 
-  // Обновление данных в слое
+  // Зеркалим data в ref, чтобы load-колбэк карты мог его прочесть
+  // (load-колбэк создан в effect-е с пустыми deps и держит замыкание на
+  // старое значение data, поэтому через ref надёжнее).
+  const dataRef = useRef<ToponymGeoJSON | null>(null);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  // Обновление данных в слое. Триггеры:
+  //  - data поменялась (например, фильтры применились)
+  //  - source стал готов (происходит ровно один раз, на load)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !data) return;
-    const updateSource = () => {
+
+    const trySetData = () => {
+      // Если source ещё не создан — выходим, событие load его создаст и
+      // само заберёт data из dataRef.current.
+      if (!sourceReadyRef.current) return;
       const src = map.getSource("toponyms") as maplibregl.GeoJSONSource | undefined;
       if (src) src.setData(data);
     };
-    if (map.loaded()) updateSource();
-    else map.once("load", updateSource);
+
+    trySetData();
   }, [data]);
 
   return (
