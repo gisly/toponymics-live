@@ -1,0 +1,43 @@
+# Caddyfile
+#
+# Caddy сам получает и обновляет Let's Encrypt сертификат для указанного
+# домена. Никаких certbot, никаких cron-задач — всё внутри.
+#
+# Условие: DNS-запись твоего домена должна указывать на IP сервера ДО
+# запуска caddy, иначе Let's Encrypt не сможет валидировать домен.
+#
+# Замени new.toponymics-live.net на свой домен.
+
+new.toponymics-live.net {
+    # Email для Let's Encrypt — на него будут приходить предупреждения
+    # о скором истечении сертификатов (если что-то пойдёт не так).
+    # Caddy сам обновляет за 30 дней до конца, ручного вмешательства не надо.
+    tls toponymics-live@example.com
+
+    # Все запросы кидаем в django (по сети docker)
+    reverse_proxy django:8000
+
+    # Gzip для текста (картинки/pmtiles уже сжаты, их не трогаем)
+    encode gzip
+
+    # Заголовки безопасности
+    header {
+        # HSTS — браузер будет ходить только по HTTPS год
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # Защита от XSS / clickjacking
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        # Скрываем, что под капотом Caddy (минорная безопасность)
+        -Server
+    }
+
+    # Логирование
+    log {
+        output file /data/access.log {
+            roll_size 100mb
+            roll_keep 5
+        }
+        format console
+    }
+}

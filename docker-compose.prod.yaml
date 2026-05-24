@@ -1,0 +1,96 @@
+# docker-compose.prod.yaml
+#
+# Продакшен-вариант стека. Главные отличия от docker-compose.yaml:
+#   - django запускается через gunicorn (а не runserver)
+#   - frontend-контейнер НЕ запускается (бандл собран заранее и лежит
+#     в backend/static/map/, отдаётся через Django+WhiteNoise)
+#   - postgres data в named volume (не bind mount)
+#   - Caddy как reverse proxy + HTTPS
+#   - все порты внутри сети docker, наружу торчит только Caddy (80, 443)
+#   - перезапуск контейнеров: unless-stopped
+#
+# Запуск:
+#   docker compose -f docker-compose.prod.yaml up -d
+#   docker compose -f docker-compose.prod.yaml logs -f django
+#
+# Остановка:
+#   docker compose -f docker-compose.prod.yaml down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  django:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Gunicorn: 3 воркера хватит на 4 ГБ RAM с запасом.
+    # --timeout 120 — большие pmtiles-запросы могут идти долго.
+    # --access-logfile - — пишем в stdout, чтобы видеть в docker logs.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn toponymics.wsgi:application
+                --bind 0.0.0.0:8000
+                --workers 3
+                --timeout 120
+                --access-logfile -
+                --error-logfile -"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - ./pmtiles-local:/app/pmtiles-local:ro
+      - ./map-style:/app/map-style:ro
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      MEDIA_ROOT: /app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # сертификаты Let's Encrypt
+      - caddy_config:/config
+    depends_on:
+      - django
+
+volumes:
+  postgres_data:
+  media_data:
+  caddy_data:
+  caddy_config:
