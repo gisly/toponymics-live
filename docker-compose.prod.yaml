@@ -35,6 +35,7 @@ services:
       - media_data:/app/media
       - ./pmtiles-local:/app/pmtiles-local:ro
       - ./map-style:/app/map-style:ro
+      - ./data-migration:/data-migration
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DJANGO_DEBUG: "False"
