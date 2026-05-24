@@ -1,20 +1,6 @@
 # docker-compose.prod.yaml
 #
-# Продакшен-вариант стека. Главные отличия от docker-compose.yaml:
-#   - django запускается через gunicorn (а не runserver)
-#   - frontend-контейнер НЕ запускается (бандл собран заранее и лежит
-#     в backend/static/map/, отдаётся через Django+WhiteNoise)
-#   - postgres data в named volume (не bind mount)
-#   - Caddy как reverse proxy + HTTPS
-#   - все порты внутри сети docker, наружу торчит только Caddy (80, 443)
-#   - перезапуск контейнеров: unless-stopped
-#
-# Запуск:
-#   docker compose -f docker-compose.prod.yaml up -d
-#   docker compose -f docker-compose.prod.yaml logs -f django
-#
-# Остановка:
-#   docker compose -f docker-compose.prod.yaml down
+# Продакшен-вариант стека.
 
 services:
   postgres:
@@ -41,18 +27,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    # Gunicorn: 3 воркера хватит на 4 ГБ RAM с запасом.
-    # --timeout 120 — большие pmtiles-запросы могут идти долго.
-    # --access-logfile - — пишем в stdout, чтобы видеть в docker logs.
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn toponymics.wsgi:application
-                --bind 0.0.0.0:8000
-                --workers 3
-                --timeout 120
-                --access-logfile -
-                --error-logfile -"
+    # Команда написана в одну строку, чтобы sh -c "..." получил её целиком,
+    # без разрывов, из-за которых флаги gunicorn утекали наружу кавычек.
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn toponymics.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -"]
     volumes:
       - ./backend:/app
       - media_data:/app/media
@@ -84,7 +61,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data        # сертификаты Let's Encrypt
+      - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - django
