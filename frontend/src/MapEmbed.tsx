@@ -24,12 +24,10 @@ export default function MapEmbed({ lang, apiBase, mapStyleUrl, initialCenter, in
   const [filters, setFilters] = useState<ToponymFilters>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Применяем API base сразу при монтировании, до первого запроса
   useEffect(() => {
     setApiBase(apiBase);
   }, [apiBase]);
 
-  // ESC выходит из полноэкранного режима
   useEffect(() => {
     if (!isFullscreen) return;
     const handler = (e: KeyboardEvent) => {
@@ -39,7 +37,6 @@ export default function MapEmbed({ lang, apiBase, mapStyleUrl, initialCenter, in
     return () => window.removeEventListener("keydown", handler);
   }, [isFullscreen]);
 
-  // В fullscreen блокируем прокрутку body, иначе можно случайно прокрутить страницу
   useEffect(() => {
     if (isFullscreen) {
       const prev = document.body.style.overflow;
@@ -59,7 +56,7 @@ export default function MapEmbed({ lang, apiBase, mapStyleUrl, initialCenter, in
         position: "relative",
         width: "100%",
         height: "100%",
-        minHeight: 400, // минимум на случай если родитель совсем плоский
+        minHeight: 400,
       };
 
   return (
@@ -72,31 +69,49 @@ export default function MapEmbed({ lang, apiBase, mapStyleUrl, initialCenter, in
         initialCenter={initialCenter}
         initialZoom={initialZoom}
       />
+      {/*
+        Кнопка fullscreen — правый нижний угол, над attribution.
+        Маленькая (24×24, иконка 14px), полупрозрачная — чтобы не отвлекала.
+        При hover делается непрозрачной — даём понять, что она кликабельна.
+      */}
       <button
         type="button"
         onClick={() => setIsFullscreen(!isFullscreen)}
         title={isFullscreen ? "Свернуть (Esc)" : "Развернуть на весь экран"}
+        className="map-fullscreen-btn"
         style={{
           position: "absolute",
-          top: 12,
-          right: 12,
+          bottom: 34,
+          right: 10,
           zIndex: 100,
-          background: "white",
-          border: "1px solid #d4d4d4",
-          borderRadius: 6,
-          padding: 8,
+          width: 24,
+          height: 24,
+          padding: 0,
+          background: "rgba(255, 255, 255, 0.85)",
+          border: "1px solid rgba(0, 0, 0, 0.1)",
+          borderRadius: 4,
           cursor: "pointer",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          color: "#555",
+          transition: "background 0.15s, color 0.15s, border-color 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          const t = e.currentTarget;
+          t.style.background = "rgba(255, 255, 255, 1)";
+          t.style.borderColor = "rgba(0, 0, 0, 0.25)";
+          t.style.color = "#000";
+        }}
+        onMouseLeave={(e) => {
+          const t = e.currentTarget;
+          t.style.background = "rgba(255, 255, 255, 0.85)";
+          t.style.borderColor = "rgba(0, 0, 0, 0.1)";
+          t.style.color = "#555";
         }}
         aria-label={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
       >
-        {isFullscreen
-          ? <Minimize2 size={18} color="#333" />
-          : <Maximize2 size={18} color="#333" />
-        }
+        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
       </button>
     </div>
   );
