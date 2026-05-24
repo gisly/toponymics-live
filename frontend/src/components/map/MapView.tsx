@@ -95,7 +95,7 @@ export default function MapView({
       attributionControl: false,
     });
 
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: false, showCompass: false }), "top-right");
 
     const ruler = new RulerControl({ lang: mapLang });
     map.addControl(ruler, "top-right");
