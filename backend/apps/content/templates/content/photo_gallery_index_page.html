@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags i18n %}
+
+{% block content %}
+<article class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <header class="mb-8">
+        <h1 class="text-3xl font-semibold text-stone-900 leading-tight mb-3">{{ page.title }}</h1>
+        {% if page.intro %}
+        <div class="text-base text-stone-700 leading-relaxed max-w-3xl">
+            {{ page.intro|richtext }}
+        </div>
+        {% endif %}
+    </header>
+
+    {% if galleries %}
+    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 list-none p-0">
+        {% for gallery in galleries %}
+        <li>
+            <a href="{% pageurl gallery %}"
+               class="group block bg-white rounded-lg overflow-hidden border border-stone-200 hover:shadow-lg hover:border-stone-300 transition-all">
+                {% if gallery.cover_image %}
+                    {% image gallery.cover_image fill-600x400 as cover %}
+                    <div class="aspect-[3/2] overflow-hidden bg-stone-100">
+                        <img src="{{ cover.url }}"
+                             alt="{{ gallery.title }}"
+                             loading="lazy"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                {% else %}
+                    <div class="aspect-[3/2] bg-stone-100 flex items-center justify-center text-stone-400 text-sm">
+                        {% trans "Нет фотографий" %}
+                    </div>
+                {% endif %}
+                <div class="p-4">
+                    <h2 class="font-medium text-stone-900 group-hover:text-stone-700">{{ gallery.title }}</h2>
+                    <div class="mt-1 text-xs text-stone-500 flex items-center gap-3">
+                        {% if gallery.location %}<span>{{ gallery.location }}</span>{% endif %}
+                        {% if gallery.date_taken %}<span>{{ gallery.date_taken|date:"Y" }}</span>{% endif %}
+                        <span>{{ gallery.photo_count }} {% blocktrans count counter=gallery.photo_count %}фото{% plural %}фото{% endblocktrans %}</span>
+                    </div>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-stone-500 italic">{% trans "Пока нет галерей." %}</p>
+    {% endif %}
+</article>
+{% endblock %}

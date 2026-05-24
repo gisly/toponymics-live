@@ -10,9 +10,11 @@
 - EventPage — событие
 """
 from django.db import models
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.fields import RichTextField, StreamField
-from wagtail.models import Page
+from wagtail.models import Orderable, Page, TranslatableMixin
+from wagtail.search import index
+from modelcluster.fields import ParentalKey
 from wagtail.search import index
 
 from apps.toponyms.blocks import NarrativeStreamBlock
@@ -35,6 +37,7 @@ class HomePage(Page):
         "content.PlatformPage",
         "content.ArticlePage",
         "content.EventPage",
+        "content.PhotoGalleryIndexPage",
     ]
     parent_page_types = ["wagtailcore.Page"]  # только в корне сайта
 
@@ -191,3 +194,117 @@ class EventPage(Page):
 
     class Meta:
         verbose_name = "Событие"
+
+
+class PhotoGalleryIndexPage(Page):
+    """
+    Раздел /photos/ — список всех галерей с обложками.
+
+    Только одна на сайт (по логике), но мы не запрещаем создавать
+    несколько — мало ли, разделить по годам захочется.
+    """
+
+    intro = RichTextField("Вступительный текст", blank=True)
+
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+    ]
+
+    subpage_types = ["content.PhotoGalleryPage"]
+    parent_page_types = ["content.HomePage"]
+
+    def get_context(self, request):
+        ctx = super().get_context(request)
+        # Берём опубликованные галереи в порядке last_published_at (новые сверху)
+        galleries = (
+            PhotoGalleryPage.objects
+            .child_of(self)
+            .live()
+            .order_by("-last_published_at")
+            .specific()
+        )
+        ctx["galleries"] = galleries
+        return ctx
+
+    class Meta:
+        verbose_name = "Фотогалерея (раздел)"
+
+
+class PhotoGalleryPage(Page):
+    """
+    Одна галерея. Фото добавляются через InlinePanel (drag-n-drop сортировка).
+    Первое фото в галерее автоматически становится обложкой в списке.
+    """
+
+    intro = RichTextField("Описание галереи", blank=True)
+    date_taken = models.DateField(
+        "Дата съёмки", null=True, blank=True,
+        help_text="Когда сделаны эти фотографии. Опционально.",
+    )
+    location = models.CharField(
+        "Место", max_length=300, blank=True,
+        help_text="Например: 'Эвенкия, посёлок Тура'.",
+    )
+
+    search_fields = Page.search_fields + [
+        index.SearchField("intro"),
+        index.SearchField("location"),
+    ]
+
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+        MultiFieldPanel(
+            [FieldPanel("date_taken"), FieldPanel("location")],
+            heading="Метаданные",
+        ),
+        InlinePanel("gallery_images", label="Фотографии"),
+    ]
+
+    parent_page_types = ["content.PhotoGalleryIndexPage"]
+    subpage_types = []
+
+    @property
+    def cover_image(self):
+        """Первое фото в галерее — обложка."""
+        first = self.gallery_images.first()
+        return first.image if first else None
+
+    @property
+    def photo_count(self) -> int:
+        return self.gallery_images.count()
+
+    class Meta:
+        verbose_name = "Фотогалерея"
+
+
+class GalleryImage(TranslatableMixin, Orderable):
+    """
+    Одно фото в галерее. TranslatableMixin нужен, чтобы wagtail-localize
+    мог создать переводимые копии подписи при переводе галереи на EN.
+
+    Само изображение не дублируется при переводе — оно общее для всех языков.
+    Переводится только caption.
+    """
+
+    page = ParentalKey(
+        PhotoGalleryPage, on_delete=models.CASCADE, related_name="gallery_images",
+    )
+    image = models.ForeignKey(
+        "wagtailimages.Image",
+        on_delete=models.CASCADE,
+        related_name="+",
+        verbose_name="Фото",
+    )
+    caption = models.CharField(
+        "Подпись", max_length=500, blank=True,
+        help_text="Необязательно. Покажется под фото в lightbox-режиме.",
+    )
+
+    panels = [
+        FieldPanel("image"),
+        FieldPanel("caption"),
+    ]
+
+    class Meta(TranslatableMixin.Meta, Orderable.Meta):
+        # Дозируем Meta из двух родителей; иначе TranslatableMixin перетрёт Orderable.
+        pass

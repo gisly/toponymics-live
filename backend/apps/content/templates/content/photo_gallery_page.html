@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static wagtailcore_tags wagtailimages_tags i18n %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/lightbox.css' %}" />
+{% endblock %}
+
+{% block content %}
+<article class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <header class="mb-6">
+        <h1 class="text-3xl font-semibold text-stone-900 leading-tight mb-3">{{ page.title }}</h1>
+        <div class="text-sm text-stone-500 flex items-center gap-3 mb-3">
+            {% if page.location %}<span>{{ page.location }}</span>{% endif %}
+            {% if page.date_taken %}<span>{{ page.date_taken|date:"d.m.Y" }}</span>{% endif %}
+            <span>{{ page.photo_count }} {% blocktrans count counter=page.photo_count %}фото{% plural %}фото{% endblocktrans %}</span>
+        </div>
+        {% if page.intro %}
+        <div class="text-base text-stone-700 leading-relaxed max-w-3xl">
+            {{ page.intro|richtext }}
+        </div>
+        {% endif %}
+    </header>
+
+    {% comment %}
+        Сетка превью. Каждая ссылка ведёт на полноразмерное фото,
+        но JS перехватит клик и откроет lightbox.
+        data-* атрибуты содержат full-URL и подпись для lightbox.
+        Без JS — клик откроет фото на отдельной странице (graceful degradation).
+    {% endcomment %}
+    {% if page.gallery_images.all %}
+    <div class="gallery-grid"
+         data-gallery
+         data-slideshow-interval="4000">
+        {% for item in page.gallery_images.all %}
+            {% image item.image fill-400x300 as thumb %}
+            {% image item.image max-1600x1600 as full %}
+            <a href="{{ full.url }}"
+               class="gallery-grid__item"
+               data-full-src="{{ full.url }}"
+               data-full-width="{{ full.width }}"
+               data-full-height="{{ full.height }}"
+               data-caption="{{ item.caption|escape }}"
+               data-index="{{ forloop.counter0 }}">
+                <img src="{{ thumb.url }}"
+                     alt="{{ item.caption|default:page.title }}"
+                     loading="lazy"
+                     width="{{ thumb.width }}"
+                     height="{{ thumb.height }}" />
+                {% if item.caption %}
+                <span class="gallery-grid__caption">{{ item.caption }}</span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-stone-500 italic">{% trans "В этой галерее пока нет фотографий." %}</p>
+    {% endif %}
+</article>
+
+{# Lightbox — пустой контейнер, наполняется из JS. Один на страницу. #}
+<div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="{% trans 'Просмотр фотографий' %}">
+    <button type="button" class="lightbox__btn lightbox__btn--close" aria-label="{% trans 'Закрыть' %}">×</button>
+    <button type="button" class="lightbox__btn lightbox__btn--prev" aria-label="{% trans 'Предыдущее фото' %}">‹</button>
+    <button type="button" class="lightbox__btn lightbox__btn--next" aria-label="{% trans 'Следующее фото' %}">›</button>
+    <button type="button" class="lightbox__btn lightbox__btn--slideshow"
+            aria-label="{% trans 'Слайдшоу' %}"
+            data-label-play="{% trans 'Слайдшоу' %}"
+            data-label-pause="{% trans 'Пауза' %}">▶</button>
+    <div class="lightbox__counter" aria-live="polite"></div>
+    <div class="lightbox__stage">
+        <img class="lightbox__image" alt="" />
+    </div>
+    <div class="lightbox__caption"></div>
+</div>
+{% endblock %}
+
+{% block extra_body %}
+    <script src="{% static 'js/lightbox.js' %}" defer></script>
+{% endblock %}
