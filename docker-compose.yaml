@@ -92,7 +92,6 @@ services:
       - ./pmtiles-local:/app/public/pmtiles:ro
 
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
       VITE_PMTILES_URL: ${VITE_PMTILES_URL}
       VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL}
     ports:

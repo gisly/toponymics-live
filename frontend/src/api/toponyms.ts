@@ -1,6 +1,6 @@
-// API base URL. По умолчанию — из env (для dev SPA-режима),
-// но в library-режиме можно переопределить через setApiBase().
-let API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+// API base URL. В library-режиме (бандл встроен в Wagtail) — пустая строка =
+// тот же origin что и страница. В SPA-режиме переопределяется через setApiBase.
+let API_BASE = "";
 
 /** Устанавливает базовый URL Django API. Применяется ко всем последующим fetch'ам. */
 export function setApiBase(base: string): void {

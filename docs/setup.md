@@ -141,7 +141,7 @@ docker compose exec django python manage.py seed_demo
 # Сначала dry-run чтобы увидеть, что произойдёт
 docker compose exec django python manage.py import_wp \
   --export-dir /data-migration/wp_export \
-  --markup /data-migration/markup.csv \
+    \
   --dry-run
 
 # Открой созданный лог рядом с markup.csv:
